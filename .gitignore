@@ -1,0 +1,26 @@
+# ---------------------------------------------------------------------------
+# Bundled binaries (~330 MB) are fetched on demand by tools\fetch-binaries.ps1
+# or tools\fetch-binaries.sh. They are third-party builds and must never be
+# committed — GitHub rejects anything over 100 MB anyway.
+bin/yt-dlp.exe
+bin/deno.exe
+bin/ffmpeg.zip
+bin/ffmpeg-master-latest-win64-gpl/
+
+# PyInstaller output. Rebuild locally with the spec file.
+build/
+dist/
+
+# Runtime data — created on first launch, holds the user's own config/history.
+data/
+downloads/
+
+# Python caches and editor leftovers.
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.vscode/
+.idea/
+*.log

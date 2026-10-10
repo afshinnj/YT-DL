@@ -1,0 +1,6 @@
+# YTDM runtime dependencies.
+#
+# Only one third-party package is required: `rich` drives the interactive
+# terminal. yt-dlp, ffmpeg and deno are bundled as binaries under bin/ and are
+# not installed from PyPI.
+rich>=13.3.0
