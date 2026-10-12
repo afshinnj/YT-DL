@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import re
 import shutil
 import subprocess
 import sys
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Iterator, Sequence
@@ -46,6 +48,10 @@ class BinaryError(RuntimeError):
 
 class DownloadError(RuntimeError):
     """Raised when yt-dlp reports a failure for a URL."""
+
+
+class DownloadCancelled(RuntimeError):
+    """Raised when a caller asked for the download to be stopped."""
 
 
 @dataclass
@@ -143,6 +149,10 @@ def _run(cmd: Sequence[str], timeout: int = 120) -> str:
     proc = subprocess.run(
         list(cmd),
         capture_output=True,
+        # Never hand our own stdin to the child: a caller that is itself a
+        # pipe reader (the browser integration host) would deadlock here while
+        # yt-dlp waits on a stream we are also consuming.
+        stdin=subprocess.DEVNULL,
         encoding="utf-8", errors="replace",
         timeout=timeout,
         env=_bin_env(),
@@ -213,6 +223,7 @@ def probe(url: str, opts: DownloadOptions | None = None) -> dict:
     cmd = _base_args(opts) + ["--dump-single-json", "--no-playlist", url]
     proc = subprocess.run(
         cmd, capture_output=True, encoding="utf-8", errors="replace",
+        stdin=subprocess.DEVNULL,
         env=_bin_env(),
     )
     if proc.returncode != 0 or not (proc.stdout or "").strip():
@@ -227,6 +238,7 @@ def list_formats(url: str, opts: DownloadOptions) -> str:
     cmd = _base_args(opts) + ["--list-formats", url]
     proc = subprocess.run(
         cmd, capture_output=True, encoding="utf-8", errors="replace",
+        stdin=subprocess.DEVNULL,
         env=_bin_env(),
     )
     out = (proc.stdout or "") + (proc.stderr or "")
@@ -259,23 +271,68 @@ def _parse_progress_line(line: str) -> ProgressUpdate | None:
 
 
 def _iter_lines(proc: subprocess.Popen) -> Iterator[tuple[str, str]]:
-    """Yield (stream, line) tuples as they arrive from the child process."""
+    """Yield ``(stream, line)`` tuples as they arrive from the child process.
+
+    yt-dlp writes its progress to stderr and its results to stdout. Reading
+    one stream to EOF before the other would mean the caller's ``should_stop``
+    poll only runs after the child has already finished, so both streams are
+    pumped concurrently into one queue.
+    """
     assert proc.stdout is not None and proc.stderr is not None
-    for raw in proc.stdout:                      # type: ignore[attr-defined]
-        yield "out", raw.rstrip("\n")
-    for raw in proc.stderr:                      # type: ignore[attr-defined]
-        yield "err", raw.rstrip("\n")
+    lines: queue.Queue = queue.Queue()
+
+    def pump(name: str, fp) -> None:
+        try:
+            for raw in fp:
+                lines.put((name, raw.rstrip("\n")))
+        except (OSError, ValueError):
+            pass
+        finally:
+            lines.put((name, None))
+
+    for name, fp in (("out", proc.stdout), ("err", proc.stderr)):
+        threading.Thread(target=pump, args=(name, fp), daemon=True).start()
+
+    open_streams = 2
+    while open_streams:
+        name, raw = lines.get()
+        if raw is None:
+            open_streams -= 1
+            continue
+        yield name, raw
+
+
+def _terminate(proc: subprocess.Popen, timeout: float = 10.0) -> None:
+    """Stop the child process and let it release the partial file locks."""
+    if proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=timeout)
 
 
 def download(
     opts: DownloadOptions,
     on_progress=None,
     on_log=None,
+    should_stop=None,
 ) -> list[str]:
-    """Run a download request. Returns the list of files yt-dlp produced."""
+    """Run a download request. Returns the list of files yt-dlp produced.
+
+    ``should_stop`` is an optional zero-argument callable. When it returns
+    true the child process is terminated and :class:`DownloadCancelled` is
+    raised. It is polled between output lines, so a download that emits
+    progress regularly is cancelled promptly.
+    """
     problems = opts.validate()
     if problems:
         raise DownloadError("; ".join(problems))
+
+    if should_stop is not None and should_stop():
+        raise DownloadCancelled("cancelled before start")
 
     args = _base_args(opts) + [
         "--format", opts.selector(),
@@ -308,6 +365,9 @@ def download(
         args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        # The child must not share our stdin: the browser host reads that
+        # stream itself, and a shared handle deadlocks both readers.
+        stdin=subprocess.DEVNULL,
         encoding="utf-8", errors="replace",
         bufsize=1,
         env=_bin_env(),
@@ -317,6 +377,9 @@ def download(
     error_lines: list[str] = []
 
     for stream, line in _iter_lines(proc):
+        if should_stop is not None and should_stop():
+            _terminate(proc)
+            raise DownloadCancelled("cancelled by request")
         progress = _parse_progress_line(line) if stream == "out" else None
         if progress is not None:
             if on_progress:

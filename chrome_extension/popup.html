@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <title>YT-DL CONNECT</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div id="app">
+    <header class="brand">
+      <div class="logo">
+        <img src="icons/icon32.png" alt="" class="logo-mark" width="26" height="26">
+        <div class="logo-text">
+          <h1>YT-DL <span class="accent">CONNECT</span></h1>
+          <div class="subtitle" id="version-line">desktop downloader bridge</div>
+        </div>
+      </div>
+      <div class="status-pill" id="connection-pill" data-state="connecting">
+        <span class="status-dot"></span>
+        <span id="connection-text">connecting…</span>
+      </div>
+    </header>
+
+    <main id="content">
+      <!-- unsupported / not-a-video page -->
+      <section id="view-unsupported" class="view hidden">
+        <div class="panel">
+          <div class="panel-title">NO VIDEO ON THIS TAB</div>
+          <p class="muted" id="unsupported-detail">
+            Open a YouTube video, then click this button again.
+          </p>
+          <div class="url-box" id="unsupported-url"></div>
+        </div>
+      </section>
+
+      <!-- not installed -->
+      <section id="view-not-installed" class="view hidden">
+        <div class="panel error-panel">
+          <div class="panel-title error-title">APPLICATION NOT FOUND</div>
+          <p id="not-installed-detail">
+            The YT-DL desktop application is not installed, or its browser host
+            is not registered with Chrome.
+          </p>
+          <ol class="steps">
+            <li>Run <code>browser_integration\installer\install_host.bat</code> from the YT-DL application folder.</li>
+            <li>Reload this extension in <code>chrome://extensions</code>.</li>
+          </ol>
+          <button class="btn ghost" id="retry-connection">retry connection</button>
+        </div>
+      </section>
+
+      <!-- main downloader -->
+      <section id="view-main" class="view hidden">
+        <div class="panel">
+          <div class="panel-title">TARGET</div>
+          <div class="url-box" id="page-url" title=""></div>
+
+          <div class="thumb-row">
+            <img id="thumbnail" alt="" class="thumb hidden" referrerpolicy="no-referrer">
+            <div class="thumb-info">
+              <div class="video-title" id="video-title">fetching information…</div>
+              <div class="meta-row">
+                <span id="video-channel" class="meta-tag">—</span>
+                <span id="video-duration" class="meta-tag">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">DOWNLOAD TYPE</div>
+          <div class="segmented" id="type-switch">
+            <button class="seg active" data-type="video">VIDEO</button>
+            <button class="seg" data-type="audio">AUDIO</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title" id="quality-panel-title">QUALITY</div>
+          <select id="quality-select" class="select" disabled>
+            <option>waiting for video information…</option>
+          </select>
+          <div class="hint" id="quality-hint"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">SAVE TO</div>
+          <div class="save-path" id="save-path">—</div>
+        </div>
+
+        <button class="btn primary" id="start-button" disabled>
+          <span class="btn-label">START DOWNLOAD</span>
+        </button>
+        <button class="btn danger hidden" id="cancel-button">CANCEL DOWNLOAD</button>
+
+        <div class="progress-wrap hidden" id="progress-wrap">
+          <div class="progress-head">
+            <span id="progress-status">QUEUED</span>
+            <span id="progress-percent">0.0%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
+          <div class="progress-detail" id="progress-detail"></div>
+        </div>
+
+        <div class="error-box hidden" id="error-box">
+          <div class="error-code" id="error-code"></div>
+          <div id="error-message"></div>
+        </div>
+      </section>
+
+      <!-- recent downloads -->
+      <section id="view-recent" class="view hidden">
+        <div class="panel">
+          <div class="panel-title">RECENT DOWNLOADS</div>
+          <div id="recent-list" class="recent-list"></div>
+          <button class="btn ghost small" id="back-from-recent">back</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button class="footer-link" id="show-recent">recent downloads</button>
+      <span class="footer-sep">·</span>
+      <span class="muted" id="engine-line">—</span>
+    </footer>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

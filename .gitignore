@@ -10,6 +10,8 @@ bin/ffmpeg-master-latest-win64-gpl/
 # PyInstaller output. Rebuild locally with the spec file.
 build/
 dist/
+build-integrated/
+dist-integrated/
 
 # Runtime data — created on first launch, holds the user's own config/history.
 data/

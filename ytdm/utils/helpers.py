@@ -51,6 +51,30 @@ def is_playlist_url(text: str) -> bool:
     return bool(_PLAYLIST_RE.search(normalize_url(text)))
 
 
+def safe_output_dir(text: str) -> Path | None:
+    """Normalise a caller supplied output directory.
+
+    Returns an absolute path, or ``None`` when the input is not acceptable:
+    it must be absolute (no implicit dependency on the current working
+    directory) and must not climb out of itself with ``..``. The directory
+    does not have to exist yet — the caller is expected to create it.
+    """
+    raw = (text or "").strip().strip("\"'").strip()
+    if not raw:
+        return None
+    try:
+        path = Path(raw)
+    except ValueError:
+        return None
+    if not path.is_absolute():
+        return None
+    if path.parts and ".." in path.parts:
+        return None
+    # Resolve separators without touching the filesystem, so a path on a
+    # drive that does not exist yet still validates.
+    return Path(str(path))
+
+
 def _scale(value: float, base: float) -> tuple[float, str]:
     units = ("B", "KB", "MB", "GB", "TB", "PB")
     size = float(value)

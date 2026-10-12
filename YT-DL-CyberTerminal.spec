@@ -37,9 +37,8 @@ for _name in ("ffmpeg.exe", "ffprobe.exe"):
     if _path.is_file():
         datas.append(str(_path))
 
-# In a frozen build engine.py resolves `bin/` from its own location
-# (_internal/ytdm/engine.py -> _internal/bin), so the destination folders must
-# mirror the source layout exactly.
+# In a frozen build engine.py resolves `bin/` beside its package root, so the
+# destination folders must mirror the source layout exactly.
 datas = [
     (
         str(p),
@@ -50,6 +49,7 @@ datas = [
 
 # Rich ships no compiled data, but this keeps the spec future-proof.
 datas += collect_data_files("rich", include_py_files=False)
+datas.append((str(ROOT / "browser_integration" / "installer" / "install_host.bat"), "."))
 
 hiddenimports = collect_submodules("rich") + [
     "ytdm",
@@ -66,6 +66,13 @@ hiddenimports = collect_submodules("rich") + [
     "ytdm.history.store",
     "ytdm.utils.helpers",
     "ytdm.utils.logger",
+    "browser_integration",
+    "browser_integration.native_host",
+    "browser_integration.jobs",
+    "browser_integration.protocol",
+    "browser_integration.formats",
+    "browser_integration.download_service",
+    "browser_integration.supervisor",
 ]
 
 # winreg is imported lazily by the engine for proxy detection; make sure the
@@ -129,6 +136,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(ROOT / "icon.ico") if (ROOT / "icon.ico").is_file() else None,
+    contents_directory=".",
 )
 
 coll = COLLECT(

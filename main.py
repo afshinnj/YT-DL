@@ -25,6 +25,18 @@ if sys.platform == "win32":
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# The packaged executable also serves as Chrome's native messaging host.
+# Chrome passes its extension origin as the first argument; supervisor and
+# self-test modes are launched by the host installer and download service.
+_native_args = sys.argv[1:]
+if _native_args and (
+    _native_args[0].startswith("chrome-extension://")
+    or _native_args[0] in {"--supervisor", "--selftest"}
+):
+    from browser_integration.native_host import main as native_host_main  # noqa: E402
+
+    sys.exit(native_host_main(_native_args))
+
 from ytdm import cli  # noqa: E402
 
 

@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "YT-DL CONNECT",
+  "version": "1.0.6",
+  "description": "Send the current tab's video to the YT-DL desktop downloader: pick quality or audio format, then watch real progress.",
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YT-DL CONNECT",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "background": {
+    "service_worker": "service_worker.js"
+  },
+
+  "permissions": [
+    "activeTab",
+    "nativeMessaging",
+    "storage"
+  ],
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAypnNMFB147jTRcXRDWhF892DK9c5nGtzNEwtWZ27OdqKqpycPO9xPDlxtCy6iG4SKl+fPOUrKD/Cxus3L4J2ZIMKwlWKTFLJNk1wJ9AFvwFfdKyJD4cmEZCsU1yqStB+sdTQMAE4qZjy+9FE6E3xaiMULot69JU4vX16l5JB8uvm+39aV64lK9jUyHpmzkW7li3cVOwtHgvWCMpFbceT22jTuzNCKCDpbfQDnXjqWVSRxY8gRuqdnUDB39lF0QdJZpPI08EJGJQMabE/AHQh6oj/4ast5F3CkH1z7OZ/6PRFVrZbYCUw4dgK6Chvl6YuReMMSof6vgCRRKleM9LSGQIDAQAB"
+}
