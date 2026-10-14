@@ -16,6 +16,7 @@ Usage from a source checkout:    ``py browser_integration/supervisor.py``
 from __future__ import annotations
 
 import os
+import argparse
 import sys
 import time
 import traceback
@@ -182,7 +183,7 @@ def run_job(job: jobs.Job) -> None:
     record_history(job, "SUCCESS")
 
 
-def main() -> int:
+def main(stay_alive: bool = False) -> int:
     log.info("supervisor pid %d starting", os.getpid())
     jobs.write_supervisor_state(os.getpid(), time.time())
 
@@ -208,7 +209,7 @@ def main() -> int:
             run_job(job)
             continue
 
-        if time.time() - last_activity > IDLE_EXIT_SECONDS:
+        if not stay_alive and time.time() - last_activity > IDLE_EXIT_SECONDS:
             log.info("queue empty for %ds, supervisor exiting", IDLE_EXIT_SECONDS)
             return 0
 
@@ -216,8 +217,14 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process queued YT-DL downloads.")
+    parser.add_argument(
+        "--stay-alive", action="store_true",
+        help="keep the background worker running while the queue is empty",
+    )
+    args = parser.parse_args()
     try:
-        sys.exit(main())
+        sys.exit(main(stay_alive=args.stay_alive))
     except KeyboardInterrupt:
         sys.exit(130)
     except Exception:  # noqa: BLE001 - last resort, leave a trace in the log
